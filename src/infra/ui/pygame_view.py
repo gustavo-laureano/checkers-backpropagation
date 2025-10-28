@@ -2,7 +2,7 @@ import pygame
 from src.app.use_cases.game_manager import GameManager
 from src.core.piece import Piece, Player
 from src.app.use_cases.move_validator import Move
-from .config import * # Importa todas as nossas constantes
+from .config import * 
 from typing import Optional
 
 class PygameView:
@@ -109,10 +109,7 @@ class PygameView:
                     pygame.draw.circle(self.screen, color, (center_x, center_y), radius)
 
                     if piece.is_king:
-                        font = pygame.font.SysFont('Arial', 20, bold=True)
-                        text_color = COLOR_BLACK if piece.player == Player.WHITE else COLOR_WHITE
-                        text = font.render('K', True, text_color)
-                        self.screen.blit(text, (center_x - text.get_width() // 2, center_y - text.get_height() // 2))
+                        self.screen.blit(CROWN_IMG, (center_x - CROWN_IMG.get_width() // 2, center_y - CROWN_IMG.get_height() // 2))
 
     def _draw_highlights(self):
         if self.selected_piece_pos:
