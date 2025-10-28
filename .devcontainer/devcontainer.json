@@ -27,7 +27,7 @@
     }
   },
   
-  "postCreateCommand": "pip install --no-cache-dir -r requirements.txt",
+  "postCreateCommand": "pip install --no-cache-dir --root-user-action=ignore -r /workspace/requirements.txt",
   
   "remoteUser": "root",
   

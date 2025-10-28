@@ -2,7 +2,7 @@
 from src.core.board import Board
 from src.core.piece import Piece, Player
 from src.app.use_cases.move_validator import MoveValidator, Move
-from typing import Optional, list
+from typing import Optional
 
 class GameManager:
 

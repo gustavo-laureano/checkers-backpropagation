@@ -4,7 +4,8 @@ from typing import Optional
 ROWS, COLS = 8, 8
 
 class Board:
-   
+    ROWS = ROWS
+    COLS = COLS
     
     def __init__(self):
         self.grid: list[list[Optional[Piece]]] = [[None for _ in range(COLS)] for _ in range(ROWS)]
