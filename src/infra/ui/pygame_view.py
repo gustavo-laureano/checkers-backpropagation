@@ -4,15 +4,37 @@ from src.core.piece import Piece, Player
 from src.app.use_cases.move_validator import Move
 from .config import * 
 from typing import Optional
+from src.infra.ai.random_player import RandomPlayer
 
 class PygameView:
-
     
-    def __init__(self, game: GameManager):
+    def __init__(self, game: GameManager, game_mode: str):
         self.game = game
+        self.game_mode = game_mode 
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Damas com IA - Projeto UEMG")
         self.clock = pygame.time.Clock()
+        
+        # --- Configuração dos Agentes ---
+        # Se o agente for 'None', significa que é um Humano.
+        # Se for um objeto (ex: RandomPlayer), é uma IA.
+        self.ai_agent_white = None
+        self.ai_agent_black = None
+
+        if self.game_mode == 'HUMAN_VS_AI':
+            # Humano (Brancas) vs IA (Pretas)
+            # (Futuramente, o menu pode perguntar qual modelo de IA)
+            self.ai_agent_black = RandomPlayer(Player.BLACK)
+        
+        elif self.game_mode == 'AI_VS_AI':
+            # IA (Brancas) vs IA (Pretas)
+            # (Aqui você pode testar IAs diferentes)
+            self.ai_agent_white = RandomPlayer(Player.WHITE)
+            self.ai_agent_black = RandomPlayer(Player.BLACK)
+        
+        elif self.game_mode == 'HUMAN_VS_HUMAN':
+            # Humano vs Humano: Ambos agentes são None
+            pass
         
         # Estado da UI:
         self.selected_piece_pos: Optional[tuple[int, int]] = None
@@ -20,27 +42,50 @@ class PygameView:
 
     def run(self):
         running = True
+        running = True
         
         while running:
-            self.clock.tick(60) 
+            self.clock.tick(60)
             
+            current_player = self.game.get_current_player()
+            current_agent = None
+            
+            if current_player == Player.WHITE:
+                current_agent = self.ai_agent_white
+            else:
+                current_agent = self.ai_agent_black
+            
+            is_human_turn = (current_agent is None)
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
                 
-                if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.type == pygame.MOUSEBUTTONDOWN and is_human_turn:
                     pos = pygame.mouse.get_pos()
                     row, col = self._get_row_col_from_mouse(pos)
                     self._handle_click(row, col)
 
+
+            if not is_human_turn and not self.game.get_winner():
+                pygame.time.wait(500) 
+                
+                move = current_agent.get_move(
+                    self.game.get_board(),
+                    self.game.get_legal_moves()
+                )
+                
+                if move:
+                    self.game.make_move(move) 
+            
             self._update_display()
             
             winner = self.game.get_winner()
             if winner:
                 self._draw_winner(winner)
                 pygame.display.flip()
-                pygame.time.wait(5000) 
-                running = False 
+                pygame.time.wait(5000)
+                running = False
 
         pygame.quit()
 
@@ -65,7 +110,6 @@ class PygameView:
         
         piece = self.game.get_board().get_piece(row, col)
         if piece and piece.player == self.game.get_current_player():
-            # Pede ao game os movimentos *para esta peça*
             moves_for_piece = [m for m in self.game.get_legal_moves() 
                                if m['from_pos'] == (row, col)]
             
