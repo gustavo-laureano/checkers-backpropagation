@@ -43,10 +43,11 @@ code .
 
 ### Passo 4: Execute o Jogo
 
-No terminal integrado do VS Code (dentro do container):
+No VS Code abra um novo terminal bash (dentro do container).
+Garanta que está na \workspace e execute o seguinte comando para iniciar a execução:
 
 ```bash
-python src/infra/main.py
+python -m src.infra.main
 ```
 
 ### Problemas Comuns - Dev Container
@@ -325,4 +326,4 @@ Se você encontrar problemas não listados aqui:
 
 ---
 
-**Atualizado em 28-10-2025 por @gustavo-laureano**
+**Atualizado em 29-10-2025 por @gustavo-laureano**

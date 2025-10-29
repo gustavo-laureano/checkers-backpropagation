@@ -17,9 +17,11 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+COPY requirements.txt /app/requirements.txt
+
 RUN pip install --no-cache-dir pygame \
     && if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
 
-CMD ["python", "main.py"]
+COPY . /app
 
-# docker run -it --rm -v ${PWD}:/app checkers-pygame
+CMD ["python", "-m", "src.infra.main"]
