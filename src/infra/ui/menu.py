@@ -32,22 +32,13 @@ class GameMenu:
         }
 
         # Cores e estilos
-        self.bg_start = (12, 20, 38)
-        self.bg_end = (28, 45, 75)
-        self.button_color = (50, 115, 220)
-        self.button_hover = (80, 150, 255)
-        self.shadow_color = (0, 0, 0, 110)
+        self.bg_start = (61, 59, 48)
+        self.bg_end = (77, 80, 80)
+        self.button_color = (231, 226, 71)
+        self.button_hover = (61, 59, 48)
+        self.shadow_color = (0,126, 123, 16)
         self.button_radius = 12
         self.shadow_offset = (6, 6)
-
-
-# <palette>
-#   <color name="Maize" hex="e7e247" r="231" g="226" b="71" />
-#   <color name="Black olive" hex="3d3b30" r="61" g="59" b="48" />
-#   <color name="Davy's gray" hex="4d5061" r="77" g="80" b="97" />
-#   <color name="Glaucous" hex="5c80bc" r="92" g="128" b="188" />
-#   <color name="Beige" hex="e9edde" r="233" g="237" b="222" />
-# </palette>
 
 
     def _setup_tkinter(self):
