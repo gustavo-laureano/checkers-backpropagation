@@ -1,49 +1,50 @@
 import pygame
 from src.app.use_cases.game_manager import GameManager
-from src.core.piece import Piece, Player
+from src.core.piece import Player
 from src.app.use_cases.move_validator import Move
-from .config import * 
+from .config import *
 from typing import Optional
 from src.infra.ai.random_player import RandomPlayer
+from src.infra.ai.neural_net_player import NeuralNetPlayer
+
 
 class PygameView:
     
-    def __init__(self, game: GameManager, game_mode: str):
+    def __init__(self, game: GameManager, mode_config: dict | None):
         self.game = game
-        self.game_mode = game_mode 
+        self.mode_config = mode_config or {}
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Damas com IA - Projeto UEMG")
         self.clock = pygame.time.Clock()
-        
-        # --- Configuração dos Agentes ---
-        # Se o agente for 'None', significa que é um Humano.
-        # Se for um objeto (ex: RandomPlayer), é uma IA.
+
         self.ai_agent_white = None
         self.ai_agent_black = None
 
-        if self.game_mode == 'HUMAN_VS_AI':
-            # Humano (Brancas) vs IA (Pretas)
-            # (Futuramente, o menu pode perguntar qual modelo de IA)
-            self.ai_agent_black = RandomPlayer(Player.BLACK)
-        
-        elif self.game_mode == 'AI_VS_AI':
-            # IA (Brancas) vs IA (Pretas)
-            # (Aqui você pode testar IAs diferentes)
-            self.ai_agent_white = RandomPlayer(Player.WHITE)
-            self.ai_agent_black = RandomPlayer(Player.BLACK)
-        
-        elif self.game_mode == 'HUMAN_VS_HUMAN':
-            # Humano vs Humano: Ambos agentes são None
-            pass
-        
-        # Estado da UI:
+        DEFAULT_MODEL_PATH = "checkers_model_v1.pth"
+
+        def create_agent(cfg: dict | None, player: Player):
+            if not cfg:
+                return None
+            t = cfg.get('type', '').upper()
+            if t in ('HUMAN', ''):
+                return None
+            if t in ('RANDOM', 'RANDOM_AI'):
+                return RandomPlayer(player)
+            if t in ('NN', 'NEURAL_NET_AI', 'NEURAL'):
+                path = cfg.get('path', DEFAULT_MODEL_PATH)
+                return NeuralNetPlayer(player, path)
+            return None
+
+        # Build agents from config dict
+        self.ai_agent_white = create_agent(self.mode_config.get('white'), Player.WHITE)
+        self.ai_agent_black = create_agent(self.mode_config.get('black'), Player.BLACK)
+
         self.selected_piece_pos: Optional[tuple[int, int]] = None
         self.highlighted_moves: list[tuple[int, int]] = []
 
     def run(self):
         running = True
-        running = True
-        
+
         while running:
             self.clock.tick(60)
             
@@ -68,15 +69,10 @@ class PygameView:
 
 
             if not is_human_turn and not self.game.get_winner():
-                pygame.time.wait(500) 
-                
-                move = current_agent.get_move(
-                    self.game.get_board(),
-                    self.game.get_legal_moves()
-                )
-                
+                pygame.time.wait(500)
+                move = current_agent.get_move(self.game.get_board(), self.game.get_legal_moves())
                 if move:
-                    self.game.make_move(move) 
+                    self.game.make_move(move)
             
             self._update_display()
             
@@ -90,29 +86,23 @@ class PygameView:
         pygame.quit()
 
     def _get_row_col_from_mouse(self, pos: tuple[int, int]) -> tuple[int, int]:
-        
         x, y = pos
         row = y // SQUARE_SIZE
         col = x // SQUARE_SIZE
         return row, col
 
     def _handle_click(self, row: int, col: int):
-       
-        
         if (row, col) in self.highlighted_moves:
             move_obj = self._find_move(self.selected_piece_pos, (row, col))
             if move_obj:
-                self.game.make_move(move_obj) 
+                self.game.make_move(move_obj)
             self._reset_selection()
             return
 
         self._reset_selection()
-        
         piece = self.game.get_board().get_piece(row, col)
         if piece and piece.player == self.game.get_current_player():
-            moves_for_piece = [m for m in self.game.get_legal_moves() 
-                               if m['from_pos'] == (row, col)]
-            
+            moves_for_piece = [m for m in self.game.get_legal_moves() if m['from_pos'] == (row, col)]
             if moves_for_piece:
                 self.selected_piece_pos = (row, col)
                 self.highlighted_moves = [m['to_pos'] for m in moves_for_piece]
@@ -147,13 +137,14 @@ class PygameView:
                 if piece:
                     center_x = c * SQUARE_SIZE + SQUARE_SIZE // 2
                     center_y = r * SQUARE_SIZE + SQUARE_SIZE // 2
-                    radius = SQUARE_SIZE // 2 - 10 # Raio da peça
-                    
+                    radius = max(8, SQUARE_SIZE // 2 - 10)
+
                     color = COLOR_WHITE if piece.player == Player.WHITE else COLOR_BLACK
                     pygame.draw.circle(self.screen, color, (center_x, center_y), radius)
 
-                    if piece.is_king:
-                        self.screen.blit(CROWN_IMG, (center_x - CROWN_IMG.get_width() // 2, center_y - CROWN_IMG.get_height() // 2))
+                    if piece.is_king and (CROWN_IMG is not None):
+                        crown = CROWN_IMG
+                        self.screen.blit(crown, (center_x - crown.get_width() // 2, center_y - crown.get_height() // 2))
 
     def _draw_highlights(self):
         if self.selected_piece_pos:

@@ -41,6 +41,19 @@ class Board:
                         self.add_piece(Piece(Player.BLACK), r, c)
                     elif r > 4: 
                         self.add_piece(Piece(Player.WHITE), r, c)
+
+    def deep_copy(self) -> 'Board':
+        new_board = Board()
+        for r in range(self.ROWS):
+            for c in range(self.COLS):
+                piece = self.get_piece(r, c)
+                if piece:
+                    new_piece = Piece(piece.player)
+                    if piece.is_king:
+                        new_piece.make_king()
+                    new_board.add_piece(new_piece, r, c)
+        return new_board
+
                         
     def __repr__(self) -> str:
         board_str = "   " + "  ".join(str(i) for i in range(COLS)) + "\n" # Headers de coluna
