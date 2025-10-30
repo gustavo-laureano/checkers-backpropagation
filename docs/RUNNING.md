@@ -41,7 +41,15 @@ code .
 2. Clique em **"Reopen in Container"** no popup que aparecer
 3. Aguarde a construção do container (primeira vez pode demorar alguns minutos)
 
-### Passo 4: Execute o Jogo
+### Passo 4: Instale o visualizador
+
+1. Instale e inicie o [VcXsrv](https://sourceforge.net/projects/vcxsrv/) ou Xming
+2. Configure o servidor X:
+   - Display number: 0
+   - Start no client
+   - Disable access control: **marcado**
+
+### Passo 5: Execute o Jogo
 
 No VS Code abra um novo terminal bash (dentro do container).
 Garanta que está na \workspace e execute o seguinte comando para iniciar a execução:
