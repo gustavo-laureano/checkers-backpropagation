@@ -6,45 +6,54 @@ from src.core.piece import Player
 
 class CheckersNet(nn.Module):
     """
-    Define a arquitetura da Rede Neural (o "cérebro").
-    Ela recebe um tabuleiro (como 4x8x8) e retorna um 
-    único número (score) entre -1 e 1.
+    Arquitetura da Rede Neural com MÁSCARA DE EFICIÊNCIA.
     """
     def __init__(self):
         super(CheckersNet, self).__init__()
+        
+        # --- CAMADAS CONVOLUCIONAIS ---
         # Input (N, 4, 8, 8) -> (N, 16, 6, 6)
         self.conv1 = nn.Conv2d(4, 16, kernel_size=3, padding=0)
         # (N, 16, 6, 6) -> (N, 32, 4, 4)
         self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=0)
         
-        # O tamanho linear será 32 * 4 * 4 = 512
-        self.fc1 = nn.Linear(512, 128) # Camada densa 1
-        self.fc2 = nn.Linear(128, 1)    # Camada de saída (o "score")
+        # --- CAMADAS DENSAS ---
+        self.fc1 = nn.Linear(32 * 4 * 4, 128) 
+        self.fc2 = nn.Linear(128, 1)
+
+        # --- OTIMIZAÇÃO: MÁSCARA ESTÁTICA ---
+        # Criamos uma máscara que tem 1 nas casas pretas e 0 nas brancas.
+        # "register_buffer" diz ao PyTorch: "Isso faz parte do modelo, mas NÃO treine isso (não é peso)"
+        mask = torch.zeros((1, 1, 8, 8))
+        for r in range(8):
+            for c in range(8):
+                if (r + c) % 2 == 1: # Casas pretas (válidas)
+                    mask[0, 0, r, c] = 1.0
+        self.register_buffer('valid_squares_mask', mask)
 
     def forward(self, x):
-        # Aplica convolução + ReLU
+        # 1. APLICAR MÁSCARA (HARD ATTENTION)
+        # Multiplicamos a entrada pela máscara.
+        # Tudo que for casa branca vira ZERO instantaneamente.
+        # Isso impede que "ruído" nas casas brancas passe para as camadas seguintes.
+        x = x * self.valid_squares_mask
+        
+        # 2. Convoluções
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         
-        # "Achata" o tensor para a camada linear
-        x = x.view(-1, 512) 
-        
+        # 3. Flatten & Dense
+        x = x.view(-1, 32 * 4 * 4) 
         x = F.relu(self.fc1(x))
         
-        # Saída final: usa 'tanh' para garantir que o score
-        # fique entre -1 (vitória das Pretas) e +1 (vitória das Brancas).
+        # 4. Saída Tanh (-1 a 1)
         x = torch.tanh(self.fc2(x))
         
         return x
 
 def board_to_tensor(board: Board, player: Player) -> torch.Tensor:
     """
-    Converte um objeto Board em um Tensor 4x8x8 para a Rede Neural.
-    A representação é "centrada no jogador":
-    - Canal 0: Peças do jogador atual
-    - Canal 1: Damas (Reis) do jogador atual
-    - Canal 2: Peças do oponente
-    - Canal 3: Damas (Reis) do oponente
+    Converte Board -> Tensor Otimizado
     """
     # Cria 4 "planos" 8x8
     player_pieces = torch.zeros((8, 8), dtype=torch.float32)
@@ -54,8 +63,14 @@ def board_to_tensor(board: Board, player: Player) -> torch.Tensor:
 
     opponent = Player.BLACK if player == Player.WHITE else Player.WHITE
 
+    # Iteração Otimizada: Se tiver como iterar só casas válidas no Board seria melhor,
+    # mas aqui mantemos o loop simples e a Rede Neural cuida de filtrar o lixo.
     for r in range(board.ROWS):
         for c in range(board.COLS):
+            # Otimização de CPU: Se for casa branca, nem acessa a memória da peça
+            if (r + c) % 2 == 0:
+                continue
+
             piece = board.get_piece(r, c)
             if piece:
                 if piece.player == player:
@@ -67,8 +82,6 @@ def board_to_tensor(board: Board, player: Player) -> torch.Tensor:
                     if piece.is_king:
                         opponent_kings[r, c] = 1
                         
-    # Empilha os 4 planos para criar o tensor (4, 8, 8)
     tensor = torch.stack([player_pieces, player_kings, opponent_pieces, opponent_kings])
-    # Adiciona a dimensão "batch" (N=1) -> (1, 4, 8, 8)
     tensor = tensor.unsqueeze(0) 
     return tensor

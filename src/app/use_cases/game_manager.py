@@ -1,4 +1,3 @@
-
 from src.core.board import Board
 from src.core.piece import Piece, Player
 from src.app.use_cases.move_validator import MoveValidator, Move
@@ -12,7 +11,6 @@ class GameManager:
         self.current_player = Player.WHITE 
         self.winner: Optional[Player] = None
         
-
         self.legal_moves: list[Move] = []
         
         self._setup_game()
@@ -33,6 +31,38 @@ class GameManager:
         self.current_player = Player.BLACK if self.current_player == Player.WHITE else Player.WHITE
         self._update_legal_moves()
 
+    def simulate_move(self, move: Move) -> Board:
+        """
+        Cria uma cópia do tabuleiro e aplica o movimento nela,
+        sem afetar o estado atual do jogo.
+        Útil para a IA avaliar consequências futuras.
+        """
+        # 1. Copia o tabuleiro atual (Deep Copy)
+        simulated_board = self.board.deep_copy()
+
+        # 2. Extrai dados do movimento
+        from_pos = move["from_pos"]
+        to_pos = move["to_pos"]
+        captures = move["captures"]
+
+        # 3. Executa a movimentação na cópia
+        piece = simulated_board.get_piece(from_pos[0], from_pos[1])
+        simulated_board.move_piece(from_pos[0], from_pos[1], to_pos[0], to_pos[1])
+
+        # 4. Remove capturas na cópia
+        for cap_pos in captures:
+            simulated_board.remove_piece(cap_pos[0], cap_pos[1])
+
+        # 5. Verifica Promoção (lógica idêntica ao make_move)
+        if piece and not piece.is_king:
+            if (piece.player == Player.WHITE and to_pos[0] == 0) or \
+               (piece.player == Player.BLACK and to_pos[0] == simulated_board.ROWS - 1):
+                
+                promoted_piece = simulated_board.get_piece(to_pos[0], to_pos[1])
+                if promoted_piece:
+                    promoted_piece.make_king()
+
+        return simulated_board
 
     def make_move(self, selected_move: Move) -> bool:
         """
@@ -43,7 +73,6 @@ class GameManager:
             print(f"Erro: Movimento {selected_move} não é legal.")
             return False
             
-       
         from_pos = selected_move["from_pos"]
         to_pos = selected_move["to_pos"]
         captures = selected_move["captures"]
@@ -56,27 +85,20 @@ class GameManager:
             self.board.remove_piece(cap_pos[0], cap_pos[1])
             
         if piece and not piece.is_king:
-            
             if (piece.player == Player.WHITE and to_pos[0] == 0) or \
                (piece.player == Player.BLACK and to_pos[0] == self.board.ROWS - 1):
-                
-                
                 piece.make_king()
         
-      
         self._switch_turn()
         return True
 
     def get_board(self) -> Board:
-       
         return self.board
 
     def get_current_player(self) -> Player:
-        
         return self.current_player
 
     def get_legal_moves(self) -> list[Move]:
-
         return self.legal_moves
         
     def get_winner(self) -> Optional[Player]:
